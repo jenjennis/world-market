@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мировой рынок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Идея: биржевой терминал для учебной игры. Крупные моно-цифры, узкий заголовочный шрифт, маска года «машины времени». */
+:root{
+  color-scheme: light;
+  --bg:#eef1f5; --panel:#ffffff; --panel2:#f5f7fa; --ink:#101826; --ink2:#4a566a; --ink3:#7a8599;
+  --line:#d5dbe4; --btn:#12263f; --btnink:#ffffff; --focus:#2a78d6;
+  --good:#0b7a53; --bad:#c7243d; --warn:#9a5b00;
+  --t0:#2a78d6; --t1:#eb6834; --t2:#1baf7a; --t3:#eda100; --t4:#e87ba4;
+  --fd:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;
+  --fb:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --fm:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0d1420; --panel:#151e2d; --panel2:#1b2638; --ink:#eaf0f8; --ink2:#a4b1c4; --ink3:#74829a;
+    --line:#26324a; --btn:#e4ecf7; --btnink:#0d1420; --focus:#5598e7;
+    --good:#3fc58f; --bad:#ff7088; --warn:#e0a53a;
+    --t0:#3987e5; --t1:#d95926; --t2:#199e70; --t3:#c98500; --t4:#d55181;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0d1420; --panel:#151e2d; --panel2:#1b2638; --ink:#eaf0f8; --ink2:#a4b1c4; --ink3:#74829a;
+  --line:#26324a; --btn:#e4ecf7; --btnink:#0d1420; --focus:#5598e7;
+  --good:#3fc58f; --bad:#ff7088; --warn:#e0a53a;
+  --t0:#3987e5; --t1:#d95926; --t2:#199e70; --t3:#c98500; --t4:#d55181;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+body.host{font-size:clamp(16px,1.2vw,24px)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+h1,h2,h3{font-family:var(--fd);margin:0;line-height:1.1;text-wrap:balance;letter-spacing:.01em}
+.num{font-family:var(--fm);font-variant-numeric:tabular-nums}
+.wrap{max-width:1500px;margin:0 auto;padding:0 18px 40px}
+.pw{max-width:560px}
+
+/* верхняя панель */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--fd);font-weight:700;font-size:1.15rem;text-transform:uppercase;letter-spacing:.06em}
+.mark{display:inline-grid;place-items:center;width:30px;height:30px;background:var(--btn);color:var(--btnink);font-size:.8rem;border-radius:4px}
+.grow{flex:1}
+.pill{font-family:var(--fm);font-size:.82rem;padding:4px 10px;border:1px solid var(--line);border-radius:99px;color:var(--ink2);background:var(--panel2)}
+.sync{font-size:.8rem;color:var(--ink3);display:inline-flex;align-items:center;gap:6px}
+.sync::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ink3)}
+.sync.live::before{background:var(--good)} .sync.error::before{background:var(--bad)} .sync.local::before,.sync.code::before{background:var(--warn)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;padding:8px 14px;min-height:40px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--btn);color:var(--btnink)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+
+/* элементы */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.card h2{font-size:1.5rem;margin-bottom:10px}
+.card h3{font-size:1.1rem;margin-bottom:8px;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 20px;background:var(--btn);color:var(--btnink);border:0;border-radius:8px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.big{min-height:56px;font-size:1.1em;padding:12px 28px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--ink2)} .tiny{font-size:.82rem;color:var(--ink3)}
+.chip{display:inline-block;width:12px;height:12px;border-radius:3px;flex:none}
+.tname{display:inline-flex;align-items:center;gap:8px;font-weight:600}
+.badge{display:inline-block;font-size:.78rem;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--ink2);background:var(--panel2)}
+.good{color:var(--good)} .bad{color:var(--bad)}
+.hero{padding:26px 0 14px}
+.hero h1{font-size:clamp(2rem,5vw,3.6rem);text-transform:uppercase}
+.hero p{max-width:60ch;color:var(--ink2);margin:10px 0 0}
+.year{font-family:var(--fm);font-weight:600;font-size:clamp(2.4rem,6vw,4.4rem);letter-spacing:.08em;line-height:1}
+.year.hidden{color:var(--ink3)}
+.eyebrow{font-family:var(--fm);font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3)}
+.facts{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.facts li{padding:10px 14px;border-left:4px solid var(--line);background:var(--panel2);border-radius:0 8px 8px 0}
+body.host .facts li{font-size:1.1em}
+.q{margin-top:14px;font-family:var(--fd);font-weight:700;font-size:1.3em}
+.timer{font-family:var(--fm);font-weight:600;font-size:clamp(2.6rem,6vw,5rem);line-height:1}
+.timer.low{color:var(--bad)}
+
+/* список команд */
+.team-card{border:1px solid var(--line);border-top:5px solid var(--c);border-radius:8px;padding:12px;background:var(--panel)}
+.team-card .row{flex-wrap:nowrap}
+.team-card ul{margin:8px 0 0;padding-left:18px;color:var(--ink2);min-height:1.4em}
+.prog{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;overflow:hidden;margin-top:6px}
+.prog>i{display:block;height:100%;background:var(--c);width:var(--w)}
+.lb{display:grid;gap:8px}
+.lb .r{display:grid;grid-template-columns:2ch 1fr auto auto;gap:12px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--panel2)}
+.lb .r.me{outline:2px solid var(--focus)}
+.lb .pos{font-family:var(--fm);color:var(--ink3)}
+
+/* ползунки */
+.asset{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.asset label{font-weight:500}
+.asset .v{font-family:var(--fm);font-weight:600;text-align:right;min-width:4ch}
+.asset input[type=range]{grid-column:1/-1;width:100%;height:36px;accent-color:var(--btn)}
+.rate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rate button{min-height:52px;border:1px solid var(--line);background:var(--panel2);border-radius:8px;font-weight:600}
+.rate button.on{background:var(--btn);color:var(--btnink);border-color:var(--btn)}
+.rate button:disabled{opacity:.4}
+textarea,input[type=text],input[type=number]{width:100%;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+textarea{min-height:76px;resize:vertical}
+.note{padding:12px 14px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}
+.note.insider{border-color:var(--warn);background:transparent}
+.note b{font-family:var(--fd)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.check input{width:22px;height:22px;margin-top:2px;accent-color:var(--btn);flex:none}
+
+/* лента доходностей */
+.tape{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.tape .c{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.tape .c small{display:block;color:var(--ink2);font-size:.8rem}
+.tape .c b{font-family:var(--fm);font-size:1.35em}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--ink2);font-size:.85rem}
+.scroll{overflow-x:auto}
+/* расходящиеся столбики */
+.brow{display:grid;grid-template-columns:minmax(90px,150px) 1fr;gap:10px;align-items:center;padding:6px 0}
+.btrack{position:relative;height:30px;display:grid;grid-template-columns:1fr 1fr}
+.btrack::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:var(--line)}
+.bl,.br{display:flex;align-items:center;height:100%}
+.bl{justify-content:flex-end}
+.bar{height:100%;background:var(--c);border-radius:4px;min-width:3px}
+.bl .bar{border-radius:4px 0 0 4px}.br .bar{border-radius:0 4px 4px 0}
+.bval{font-family:var(--fm);font-weight:600;padding:0 8px;white-space:nowrap}
+.terms{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.terms .badge{font-size:.9em;color:var(--ink);border-color:var(--ink3)}
+.reason{margin:6px 0 0;padding-left:12px;border-left:3px solid var(--line);color:var(--ink2);font-size:.92em}
+details>summary{cursor:pointer;color:var(--ink2);padding:6px 0}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+svg text{fill:var(--ink2);font-family:var(--fb)}
+.medal{font-family:var(--fd);font-weight:700;font-size:1.05em}
+.center{text-align:center}
+#codeText{font-family:var(--fm);font-size:1rem;word-break:break-all}
+[hidden]{display:none!important}
+.spacer{height:12px}
+
+.step{display:flex;gap:12px;align-items:center;margin:26px 0 10px}
+.step h2{font-size:1.4rem}
+.sn{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--btn);color:var(--btnink);font-family:var(--fm);font-weight:600;flex:none}
+.howto{margin:0;padding:0;list-style:none;display:grid;gap:12px;counter-reset:n}
+.howto li{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;counter-increment:n}
+.howto li::before{content:counter(n);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--btn);color:var(--btnink);font-family:var(--fm);font-weight:600}
+.howto li>div{padding-top:4px}
+.choice{display:flex;flex-direction:column;gap:12px}
+.choice h2{font-size:1.8rem}
+.bigcode{display:block;width:100%;font-family:var(--fm);font-size:1.05rem}
+.roundbig{font-family:var(--fd);font-weight:700;font-size:clamp(2rem,4vw,3.2rem);text-transform:uppercase;line-height:1}
+.ok{color:var(--good);font-weight:600}
+.minibar{position:sticky;top:57px;z-index:4;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}
+.stickybtn{position:sticky;bottom:0;padding:12px 0;background:var(--bg)}
+
+body{background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:22px 22px}
+:root{--dot:rgba(16,24,38,.08)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--dot:rgba(255,255,255,.05)}}
+:root[data-theme="dark"]{--dot:rgba(255,255,255,.05)}
+.ticker{overflow:hidden;white-space:nowrap;border-bottom:1px solid var(--line);background:var(--panel);font-family:var(--fm);font-size:.82rem;color:var(--ink2)}
+.ticker .track{display:inline-block;padding:7px 0;animation:tk 60s linear infinite}
+@keyframes tk{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){.ticker .track{animation:none}}
+.dots{display:flex;gap:7px;align-items:center}
+.dots i{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.dots i.done{background:var(--btn)}
+.dots i.now{outline:2px solid var(--btn);outline-offset:2px}
+.roomcode{font-family:var(--fm);font-weight:600;font-size:clamp(3rem,9vw,6.5rem);letter-spacing:.16em;line-height:1}
+.mems{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:30px}
+.mem{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border:1px solid var(--line);border-radius:99px;background:var(--panel2);font-size:.92em}
+.mem .st{width:9px;height:9px;border-radius:50%;background:var(--ink3);flex:none}
+.mem.on .st{background:var(--good)}
+.mem.done{border-color:var(--good);font-weight:600}
+.pulse{animation:pl 1.6s ease-in-out infinite}
+@keyframes pl{50%{opacity:.4}}
+@media (prefers-reduced-motion: reduce){.pulse{animation:none}}
+.bnr{padding:12px 14px;border-radius:10px;border:1px solid var(--bad);color:var(--ink);background:var(--panel)}
+.pteam{padding:14px 16px;border-radius:12px;border:1px solid var(--line);border-left:8px solid var(--c);background:color-mix(in srgb,var(--c) 12%,var(--panel))}
+.qr{display:inline-block;background:#fff;padding:8px;border-radius:8px;line-height:0;margin-top:10px}
+.qr svg{width:min(220px,55vw);height:auto}
+.bigstat{font-family:var(--fm);font-weight:600;font-size:clamp(1.6rem,3vw,2.4rem)}
+.tc-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:nowrap}
+.tc-head .tname{font-size:1.15em}
+@media (max-width:520px){ .wrap{padding:0 12px 32px} .top{padding:10px 12px} }
+@media (prefers-reduced-motion: no-preference){ .prog>i{transition:width .3s} }
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap pw"><p class="muted" style="padding-top:40px">Загрузка игры…</p></div></div>
+<script>
+/* ===== ENGINE: чистые функции игры, без DOM ===== */
+const TEAMS = [
+  { name: 'США', stock: 'Акции США', bond: 'Казначейские облигации США' },
+  { name: 'Еврозона', stock: 'Акции Еврозоны', bond: 'Гособлигации Еврозоны' },
+  { name: 'Китай', stock: 'Акции Китая', bond: 'Облигации Китая' },
+  { name: 'Россия', stock: 'Акции России', bond: 'Облигации России (ОФЗ)' },
+  { name: 'Развивающиеся рынки', short: 'Разв. рынки', stock: 'Акции развивающихся рынков', bond: 'Облигации развивающихся рынков' }
+];
+const ASSET_LABELS = ['Акции региона', 'Облигации региона', 'Доллар (кэш)', 'Золото', 'Нефть'];
+const RATE_LABEL = { '-1': 'Снизить', '0': 'Держать', '1': 'Повысить' };
+const K = { stockRate: 3.5, bondRate: 3, fxStock: 2, fxBond: 4, defend: 5, imfFee: 3, imfHalf: 0.6 };
+const START_CAP = 100;
+const INSIDER_TEAMS = [2, 3, 1, 0, 2];
+
+/* Доходности за раунд, % в долларовом выражении. Порядок команд: США, Еврозона, Китай, Россия, Развивающиеся. */
+const EVENTS = [
+  {
+    year: '1992', title: 'Чёрная среда',
+    clue: {
+      headline: 'Валюты в коридоре',
+      facts: [
+        'Несколько европейских стран привязали курсы своих валют к самой сильной и обязались держать их в узком коридоре.',
+        'Центральный банк сильной страны держит ставку очень высокой из-за последствий объединения и страха инфляции.',
+        'Слабые валюты давят на нижнюю границу коридора. Крупные фонды открывают против них короткие позиции.',
+        'Слабым странам приходится держать ставки выше, чем нужно их экономике.'
+      ],
+      question: 'Что случается с фиксированным курсом, когда рынок проверяет его на прочность?'
+    },
+    teamNotes: [
+      'Вы вне коридора. Доллар ходит свободно, ФРС снижает ставки из-за слабой экономики.',
+      'Ваша валюта привязана к коридору и уже на нижней границе. Резервы ЦБ конечны.',
+      'Рынки капитала закрыты, юань не торгуется свободно. Внешний шок слабый.',
+      'Идёт переход к рынку, инфляция огромна, рубль в свободном падении.',
+      'Вы почти не вовлечены в события, но инвесторы осторожничают.'
+    ],
+    stocks: [3, -7, 1, -3, -2], bonds: [2, -4, 0, -4, -1],
+    usd: 1, gold: -5, oil: -2, fx: [0, 0.9, 0, 0.2, 0.1],
+    insider: 'Слух: несколько крупных фондов договариваются одновременно играть против самой слабой валюты коридора.',
+    reveal: {
+      text: '16 сентября 1992 года Великобритания и Италия вышли из Европейского валютного механизма после атаки спекулянтов на фунт и лиру. Банк Англии поднимал ставку прямо в течение дня, но удержать курс не смог. Фонд Джорджа Сороса заработал на этой ставке около 1 млрд долларов. В игре роль участников коридора играет Еврозона.',
+      concept: 'Невозможная троица: нельзя одновременно иметь фиксированный курс, свободное движение капитала и самостоятельную денежную политику. Когда рынок проверяет эту связку, резервов ЦБ может не хватить.',
+      best: 'Что работало: уход в доллар и отказ от слабой валюты коридора. Повышение ставки смягчало удар, но не останавливало атаку.',
+      terms: ['Фиксированный курс', 'Невозможная троица', 'Валютная атака']
+    }
+  },
+  {
+    year: '1997–1998', title: 'Азиатский кризис и дефолт России',
+    clue: {
+      headline: 'Заражение',
+      facts: [
+        'Азиатская страна с курсом, привязанным к доллару, исчерпала резервы и отпустила курс. Валюта обесценилась за недели.',
+        'Иностранные инвесторы массово выходят из рынков развивающихся стран, даже из тех, у кого экономика здоровее.',
+        'Цены на нефть и сырьё падают, бюджеты стран-экспортёров под давлением.',
+        'Деньги бегут в доллар и казначейские облигации США.'
+      ],
+      question: 'Как далеко распространится паника и кто окажется в безопасности?'
+    },
+    teamNotes: [
+      'Вы тихая гавань: капитал приходит к вам, доходности падают.',
+      'Банки Еврозоны умеренно вовлечены в эти рынки, рынок в целом спокоен.',
+      'Ваш курс жёстко привязан к доллару. Вы держитесь, но экспорт конкурентов дешевеет.',
+      'Дефицит бюджета, огромная доходность госбумаг, нефть дешевеет. Инвесторы сомневаются, что долги будут выплачены.',
+      'Вы в зоне заражения: ваша валюта и бумаги под продажами, хотя экономика у многих стран в порядке.'
+    ],
+    stocks: [6, -3, -4, -45, -28], bonds: [4, 1, -1, -35, -15],
+    usd: 1, gold: -10, oil: -12, fx: [0, 0, 0.3, 1.0, 0.9],
+    insider: 'Слух: резервы одной из стран, которая держит курс, почти исчерпаны. Отпустить курс придётся в ближайшие недели.',
+    reveal: {
+      text: '2 июля 1997 года Таиланд отпустил курс бата. За месяцы кризис дошёл до Индонезии, Южной Кореи и других стран. В августе 1998 года Россия объявила дефолт по внутреннему долгу и девальвировала рубль, после чего упали и остальные развивающиеся рынки.',
+      concept: 'Заражение (contagion) и внезапная остановка притока капитала (sudden stop): инвесторы выходят даже из здоровых развивающихся стран. МВФ даёт кредиты, но с жёсткими условиями.',
+      best: 'Что работало: доллар и казначейские облигации США. Больше всего потеряли страны с высокими ставками, дефицитом и слабыми резервами.',
+      terms: ['Заражение', 'Sudden stop', 'Кредит МВФ и условия']
+    }
+  },
+  {
+    year: '2008', title: 'Глобальный финансовый кризис',
+    clue: {
+      headline: 'Остановка кредита',
+      facts: [
+        'Рынок рискованной ипотеки обвалился, крупный инвестиционный банк объявил о банкротстве. Банки перестали доверять друг другу.',
+        'Межбанковские ставки взлетели, кредит заморожен.',
+        'Акции падают по всему миру, нефть и сырьё дешевеют, инвесторы продают всё, что можно продать.',
+        'Центральные банки готовы снижать ставки и вливать ликвидность.'
+      ],
+      question: 'Куда уходят деньги, когда рушится доверие между банками?'
+    },
+    teamNotes: [
+      'Вы эпицентр кризиса. Есть пространство для резкого снижения ставки и программ поддержки.',
+      'Банки Еврозоны держат много американских бумаг и несут потери.',
+      'Экспорт падает, государство готовит большой пакет стимулов.',
+      'Нефть падает, капитал уходит, ЦБ тратит резервы на защиту рубля.',
+      'Инвесторы сокращают риск и выводят деньги отовсюду.'
+    ],
+    stocks: [-30, -32, -25, -48, -35], bonds: [9, 3, 2, -12, -10],
+    usd: 1, gold: 3, oil: -38, fx: [0, 0.2, 0.1, 0.7, 0.6],
+    insider: 'Слух: один из крупнейших инвестиционных банков не найдёт покупателя и не получит помощи от государства.',
+    reveal: {
+      text: '15 сентября 2008 года обанкротился инвестиционный банк Lehman Brothers. Межбанковский кредит заморозился, акции обвалились по всему миру. За несколько месяцев ФРС снизила ставку почти до нуля.',
+      concept: 'Системный риск и бегство в качество: падают все рисковые активы, растёт цена казначейских облигаций и доллара, а центробанки становятся кредиторами последней инстанции.',
+      best: 'Что работало: гособлигации США, золото и доллар. Снижение ставки смягчало потери на рынке акций.',
+      terms: ['Системный риск', 'Бегство в качество', 'Кредитор последней инстанции']
+    }
+  },
+  {
+    year: '2020–2021', title: 'Пандемия и количественное смягчение',
+    clue: {
+      headline: 'Мир встал, ставки в ноль',
+      facts: [
+        'Экономики остановились из-за пандемии, и акции за несколько недель потеряли треть.',
+        'Центральные банки снижают ставки почти до нуля и скупают облигации в огромных объёмах.',
+        'Правительства раздают помощь людям и бизнесу, денег в системе становится гораздо больше.',
+        'Аналитики спорят: затяжная депрессия или быстрое восстановление.'
+      ],
+      question: 'Что происходит с ценами активов, когда денег становится очень много?'
+    },
+    teamNotes: [
+      'ФРС готова снижать ставку до нуля и запускать программу покупки облигаций.',
+      'ЕЦБ запускает экстренную программу покупки облигаций.',
+      'Вы первыми выходите из карантина, восстановление идёт быстрее остальных.',
+      'Нефть упала, потом отскочила. ЦБ снижает ставку, чтобы поддержать экономику.',
+      'Ставки снижаются осторожно, валюты остаются уязвимыми.'
+    ],
+    stocks: [25, 15, 25, 10, 20], bonds: [5, 3, 4, 6, 5],
+    usd: 0, gold: 14, oil: 25, fx: [0, 0, 0, 0.1, 0.2],
+    insider: 'Слух: ФРС готовит программу покупки облигаций без ограничения по объёму.',
+    reveal: {
+      text: 'В марте 2020 года ФРС снизила ставку почти до нуля и начала масштабно скупать облигации. Другие центробанки сделали то же самое. Рынки быстро отыграли падение и обновили максимумы, золото и нефть выросли.',
+      concept: 'Количественное смягчение (QE): денег много, доходность облигаций низкая, цены активов растут. Держать доллар или кэш в такой фазе дорого.',
+      best: 'Что работало: акции, золото и нефть. Снижение ставки подталкивало рынки вверх.',
+      terms: ['QE', 'Нулевая ставка', 'Ликвидность']
+    }
+  },
+  {
+    year: '2022', title: 'Инфляция и шок ставок',
+    clue: {
+      headline: 'Инфляция и ставки',
+      facts: [
+        'Инфляция в США достигла максимума за 40 лет, энергоносители резко подорожали.',
+        'ФРС начинает самый быстрый цикл повышения ставок за десятилетия.',
+        'Доллар укрепляется до многолетних максимумов, облигации дешевеют вместе с акциями.',
+        'Привычная связка «акции плюс облигации» перестаёт защищать портфель.'
+      ],
+      question: 'Что происходит с активами, когда деньги резко дорожают?'
+    },
+    teamNotes: [
+      'Инфляция высока, ФРС ужесточает политику.',
+      'Энергетический шок, высокая инфляция, слабый евро.',
+      'Строгие карантины, ставки снижают вопреки мировому тренду.',
+      'Резкие ограничения на финансовые операции, ЦБ поднимает ставку до 20%.',
+      'Отток капитала из-за роста ставок в США, валюты слабеют.'
+    ],
+    stocks: [-19, -16, -22, -35, -20], bonds: [-15, -17, 0, -25, -14],
+    usd: 1.5, gold: -2, oil: 9, fx: [0, 0.4, 0.4, 0.9, 0.6],
+    insider: 'Слух: ФРС даст сигнал, что ставки будут расти значительно быстрее, чем ожидает рынок.',
+    reveal: {
+      text: 'В 2022 году ФРС подняла ставку с 0–0,25% до 4,25–4,50%, быстрее, чем за десятилетия. Инфляция в США была максимальной за 40 лет. Доллар вырос до многолетних максимумов, облигации подешевели вместе с акциями.',
+      concept: 'Дюрация: чем длиннее облигация, тем сильнее падает её цена при росте ставок. Сильный доллар бьёт по развивающимся рынкам, а привычная диверсификация «акции плюс облигации» перестаёт работать.',
+      best: 'Что работало: доллар, нефть и золото. Повышение ставки давало приток капитала и защиту валюты.',
+      terms: ['Дюрация', 'Сильный доллар', 'Монетарное ужесточение']
+    }
+  }
+];
+const ROUNDS = EVENTS.length;
+
+const sum = a => a.reduce((s, x) => s + x, 0);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* Ползунок: задаёт вес k, остальное пропорционально перераспределяется. Целые, сумма 100. */
+function setWeight(w, k, v) {
+  v = clamp(Math.round(v), 0, 100);
+  const others = w.map((_, i) => i).filter(i => i !== k);
+  const rest = 100 - v;
+  const s = sum(others.map(i => w[i]));
+  const raw = w.slice();
+  raw[k] = v;
+  others.forEach(i => { raw[i] = s === 0 ? rest / others.length : w[i] * rest / s; });
+  const fl = raw.map(Math.floor);
+  let left = 100 - sum(fl);
+  const order = raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+  for (let j = 0; left > 0 && j < order.length; j++, left--) {
+    if (order[j][1] === k) { left++; continue; }
+    fl[order[j][1]]++;
+  }
+  if (left > 0) fl[k] += left;
+  return fl;
+}
+
+/* Решение команды из голосов участников. */
+function aggregate(votes, prev) {
+  if (!votes.length) {
+    return { w: prev ? prev.w.slice() : [20, 20, 20, 20, 20], rate: 0, imf: false, reasons: [], auto: true, voters: 0 };
+  }
+  const w = [0, 1, 2, 3, 4].map(k => sum(votes.map(v => v.w[k])) / votes.length);
+  const cnt = { '-1': 0, '0': 0, '1': 0 };
+  votes.forEach(v => { cnt[String(v.rate)]++; });
+  const max = Math.max(cnt['-1'], cnt['0'], cnt['1']);
+  const top = ['-1', '0', '1'].filter(k => cnt[k] === max);
+  const rate = top.length === 1 ? Number(top[0]) : 0;
+  const imf = votes.filter(v => v.imf).length * 2 > votes.length;
+  const reasons = votes.filter(v => v.reason && v.reason.trim()).map(v => ({ name: v.name || '', text: v.reason.trim() }));
+  return { w, rate, imf, reasons, auto: false, voters: votes.length };
+}
+
+/* Расчёт раунда. decisions[i] = {w, rate, imf}; capitals[i]; imfCond[i] = обязательство после МВФ. */
+function resolveRound(ev, n, decisions, capitals, imfCond) {
+  const rates = [];
+  for (let i = 0; i < n; i++) {
+    let r = decisions[i].rate, forced = false;
+    if (imfCond && imfCond[i] && r < 0) { r = 0; forced = true; }
+    rates.push({ r, forced });
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const d = decisions[i];
+    const r = rates[i].r;
+    const others = rates.filter((_, j) => j !== i).map(x => x.r);
+    const mean = others.length ? sum(others) / others.length : 0;
+    const diff = r - mean;
+    const p = ev.fx[i];
+    const rateStock = -K.stockRate * r + K.fxStock * diff + p * K.defend * r;
+    const rateBond = -K.bondRate * r + K.fxBond * diff + p * K.defend * r;
+    let stockRet = ev.stocks[i] + rateStock;
+    let bondRet = ev.bonds[i] + rateBond;
+    if (d.imf) {
+      if (stockRet < 0) stockRet *= K.imfHalf;
+      if (bondRet < 0) bondRet *= K.imfHalf;
+    }
+    const rets = [stockRet, bondRet, ev.usd, ev.gold, ev.oil];
+    const port = sum(rets.map((x, k) => d.w[k] / 100 * x));
+    let cap = capitals[i] * (1 + port / 100);
+    if (d.imf) cap -= capitals[i] * K.imfFee / 100;
+    const rateContrib = (d.w[0] * rateStock + d.w[1] * rateBond) / 100;
+    out.push({ rets, port, cap, rate: r, forced: rates[i].forced, rateContrib, imf: !!d.imf, w: d.w.slice() });
+  }
+  return out;
+}
+
+function randomDecision() {
+  let w = [0, 0, 0, 0, 0].map(() => Math.random() + 0.15);
+  const s = sum(w);
+  w = w.map(x => x / s * 100);
+  let fl = w.map(Math.floor);
+  fl[0] += 100 - sum(fl);
+  return { w: fl, rate: [-1, 0, 1][Math.floor(Math.random() * 3)], imf: Math.random() < 0.05 };
+}
+
+/* Награды по истории. history[r] = {res:[{port,cap,rateContrib,w}]} */
+function computeAwards(history, n) {
+  const stat = [];
+  for (let i = 0; i < n; i++) {
+    const conc = history.map(h => sum(h.res[i].w.map(x => (x / 100) * (x / 100))));
+    const cb = sum(history.map(h => h.res[i].rateContrib));
+    stat.push({ conc: sum(conc) / Math.max(1, conc.length), cb });
+  }
+  const arg = (f, cmp) => stat.map((s, i) => [f(s), i]).sort((a, b) => cmp(a[0], b[0]) || a[1] - b[1])[0][1];
+  return {
+    cautious: arg(s => s.conc, (a, b) => a - b),
+    risky: arg(s => s.conc, (a, b) => b - a),
+    banker: arg(s => s.cb, (a, b) => b - a)
+  };
+}
+
+
+
+
+/* ===================== ПРИЛОЖЕНИЕ ===================== */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nf = (x, d = 1) => Number(x).toFixed(d).replace('.', ',');
+const sgn = (x, d = 1) => (x >= 0.05 ? '+' : x <= -0.05 ? '−' : '') + nf(Math.abs(x), d) + '%';
+const arrow = x => x >= 0.05 ? '▲' : x <= -0.05 ? '▼' : '■';
+const cls = x => x >= 0.05 ? 'good' : x <= -0.05 ? 'bad' : '';
+const rateWord = r => r > 0 ? '▲ Повысить' : r < 0 ? '▼ Снизить' : '■ Держать';
+const chip = i => `<span class="chip" style="background:var(--t${i})"></span>`;
+const tname = i => `<span class="tname">${chip(i)}${esc(TEAMS[i].name)}</span>`;
+const assetName = (k, t) => k === 0 ? TEAMS[t].stock : k === 1 ? TEAMS[t].bond : ASSET_LABELS[k];
+const mmss = s => { s = Math.max(0, s); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+
+
+
+const BASE = 'wm26';
+const BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'];
+const MQTT_LIBS = ['https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js', 'https://cdn.jsdelivr.net/npm/mqtt@4.3.7/dist/mqtt.min.js'];
+const QR_LIBS = ['https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js', 'https://unpkg.com/qrcode-generator@1.4.4/qrcode.js'];
+
+const ctx = { view: 'choose', net: 'idle', hostSeen: false };
+let S = null, P = {}, O = {}, V = {};
+let room = '', client = null, netGen = 0;
+const uid = (() => { try { let u = localStorage.getItem('mr-uid'); if (!u) { u = 'u' + Math.random().toString(36).slice(2, 10); localStorage.setItem('mr-uid', u); } return u; } catch (e) { return 'u' + Math.random().toString(36).slice(2, 10); } })();
+let draft = { w: [20, 20, 20, 20, 20], rate: 0, imf: false, reason: '' }, draftKey = '';
+let manual = {};
+let codes = {}, seenCodes = new Set();
+const cs = { name: '', team: null, round: 1, code: '', room: '', joined: false };
+const ui = { cfgN: 5, cfgDur: 90, confirmReset: false, ingestMsg: '', autoBots: false, manualOpen: false, restored: false, sent: false, sentKey: '', joinErr: '' };
+let lastKey = '', renderT = null;
+const $app = document.getElementById('app');
+
+const nTeams = () => (S && S.n) || ui.cfgN;
+const capsNow = () => S && S.history.length ? S.history[S.history.length - 1].caps : Array(nTeams()).fill(START_CAP);
+const newState = (n, dur) => ({ gid: String(Date.now()), phase: 'lobby', round: 0, n, dur, deadline: 0, history: [], imfUsed: [], imfCond: [] });
+const T = s => `${BASE}/${room}/${s}`;
+function newRoom() { const a = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let r = ''; for (let i = 0; i < 4; i++) r += a[Math.floor(Math.random() * a.length)]; return r; }
+function normW(w) { const s = w.reduce((a, b) => a + (Number(b) || 0), 0); return s <= 0 ? [20, 20, 20, 20, 20] : w.map(x => (Number(x) || 0) / s * 100); }
+function saveCs() { try { localStorage.setItem('mr-cs', JSON.stringify({ name: cs.name, room: cs.room, joined: cs.joined, team: cs.team, round: cs.round })); } catch (e) {} }
+function saveHost() { try { localStorage.setItem('mr-host', JSON.stringify({ room, S, ts: Date.now() })); } catch (e) {} }
+const memberList = i => Object.entries(P).filter(([, p]) => p && p.team === i).map(([id, p]) => ({ id, name: p.name || 'без имени', on: !!O[id] }));
+const onlineCount = () => Object.keys(P).filter(id => O[id]).length;
+const myTeam = () => { const p = P[uid]; return p && p.team < nTeams() ? p.team : null; };
+function smallestTeam(n, skip) {
+  const c = Array(n).fill(0);
+  Object.entries(P).forEach(([id, p]) => { if (id !== skip && p && p.team < n) c[p.team]++; });
+  return c.indexOf(Math.min(...c));
+}
+function codesCount(r, i) { return ((codes[r] && codes[r][i]) || []).length; }
+
+/* ---------- сеть ---------- */
+function loadScript(urls, check, cb) {
+  if (check()) return cb(true);
+  let i = 0;
+  const next = () => {
+    if (i >= urls.length) return cb(false);
+    const s = document.createElement('script'); s.src = urls[i++];
+    s.onload = () => cb(check()); s.onerror = next; document.head.appendChild(s);
+  };
+  next();
+}
+function netDisconnect() { netGen++; if (client) { try { client.end(true); } catch (e) {} client = null; } ctx.net = 'idle'; }
+function netConnect(role, onConnected, onMsg) {
+  netDisconnect(); const gen = netGen; ctx.net = 'wait'; scheduleRender();
+  loadScript(MQTT_LIBS, () => !!window.mqtt, ok => {
+    if (gen !== netGen) return;
+    if (!ok) { ctx.net = 'fail'; scheduleRender(); return; }
+    const tryBroker = i => {
+      if (gen !== netGen) return;
+      if (i >= BROKERS.length) { ctx.net = 'fail'; scheduleRender(); return; }
+      const opts = { clientId: 'wm-' + uid + '-' + Math.random().toString(16).slice(2, 6), clean: true, reconnectPeriod: 2500, connectTimeout: 6000, keepalive: 30 };
+      if (role === 'part') opts.will = { topic: T('o/' + uid), payload: JSON.stringify({ on: false }), retain: true, qos: 0 };
+      const c = window.mqtt.connect(BROKERS[i], opts);
+      let up = false;
+      const to = setTimeout(() => { if (!up && gen === netGen) { try { c.end(true); } catch (e) {} tryBroker(i + 1); } }, 7500);
+      c.on('connect', () => { if (gen !== netGen) { try { c.end(true); } catch (e) {} return; } up = true; clearTimeout(to); client = c; ctx.net = 'ok'; onConnected(); scheduleRender(); });
+      c.on('message', (topic, payload) => { if (gen === netGen) onMsg(topic, String(payload)); });
+      c.on('close', () => { if (up && gen === netGen) { ctx.net = 'wait'; scheduleRender(); } });
+      c.on('error', () => {});
+    };
+    tryBroker(0);
+  });
+}
+function pub(sub, obj, retain) {
+  if (!client) return;
+  try { client.publish(T(sub), obj == null ? '' : JSON.stringify(obj), { qos: 1, retain: retain !== false }); } catch (e) {}
+}
+const relTopic = topic => topic.slice((BASE + '/' + room + '/').length);
+function parseMsg(payload) { try { return payload ? JSON.parse(payload) : null; } catch (e) { return null; } }
+
+/* ---------- ведущий: сеть и состояние ---------- */
+function pubState() {
+  if (!client || !S) return;
+  pub('host', { gid: S.gid, phase: S.phase, round: S.round, n: S.n, dur: S.dur, deadline: S.deadline, imfUsed: S.imfUsed, imfCond: S.imfCond, history: S.history.map(h => ({ r: h.r, caps: h.caps, autos: h.autos, res: h.res })), ts: Date.now() });
+}
+function commit(patch) { S = Object.assign({}, S, patch); saveHost(); pubState(); scheduleRender(); }
+function hostConnect() {
+  netConnect('host', () => { client.subscribe([T('p/+'), T('o/+'), T('v/+')], { qos: 1 }); pubState(); }, (topic, payload) => {
+    const [k, id] = relTopic(topic).split('/'); const m = parseMsg(payload);
+    if (k === 'p') { if (m) P[id] = m; else delete P[id]; }
+    else if (k === 'o') { if (m) O[id] = !!m.on; else delete O[id]; }
+    else if (k === 'v') { if (m) V[id] = m; else delete V[id]; }
+    scheduleRender();
+  });
+}
+function hostInit() {
+  ctx.view = 'host';
+  let saved = null; try { saved = JSON.parse(localStorage.getItem('mr-host') || 'null'); } catch (e) {}
+  if (saved && saved.room && saved.S && Date.now() - saved.ts < 12 * 3600e3) { room = saved.room; S = saved.S; ui.restored = true; ui.cfgN = S.n; ui.cfgDur = S.dur; }
+  else { room = newRoom(); S = newState(ui.cfgN, ui.cfgDur); ui.restored = false; }
+  P = {}; O = {}; V = {}; saveHost(); hostConnect(); lastKey = ''; render();
+}
+function hostNewRoom() {
+  room = newRoom(); S = newState(S ? S.n : ui.cfgN, S ? S.dur : ui.cfgDur); ui.restored = false; manual = {}; codes = {}; seenCodes = new Set();
+  P = {}; O = {}; V = {}; saveHost(); hostConnect(); render();
+}
+function rebalance(n) {
+  Object.entries(P).forEach(([id, p]) => { if (p && p.team >= n) { P[id] = Object.assign({}, p, { team: smallestTeam(n, id) }); pub('p/' + id, P[id]); } });
+}
+function hostSetCfg(n, dur) {
+  if (n) { ui.cfgN = n; commit({ n }); rebalance(n); }
+  if (dur) { ui.cfgDur = dur; commit({ dur }); }
+}
+function hostStart() {
+  const n = S.n; rebalance(n);
+  manual = {}; codes = {}; seenCodes = new Set(); ui.ingestMsg = '';
+  commit({ gid: String(Date.now()), phase: 'decide', round: 1, deadline: Date.now() + S.dur * 1000, history: [], imfUsed: Array(n).fill(false), imfCond: Array(n).fill(false) });
+}
+function hostResolve() {
+  const n = S.n, r = S.round, ev = EVENTS[r - 1];
+  const prev = S.history.length ? S.history[S.history.length - 1].res : null;
+  const decs = [], reasons = [], voters = [], autos = [];
+  for (let i = 0; i < n; i++) {
+    const m = manual[r] && manual[r][i];
+    const vs = Object.values(V).filter(v => v && v.gid === S.gid && v.round === r && v.team === i).concat((codes[r] && codes[r][i]) || []);
+    let d;
+    if (m) d = { w: normW(m.w), rate: m.rate, imf: !!m.imf, reasons: [{ name: 'Ведущий', text: 'решение введено вручную' }], auto: false, voters: 0 };
+    else if (!vs.length && ui.autoBots) { const b = randomDecision(); d = { w: b.w, rate: b.rate, imf: b.imf, reasons: [{ name: 'Бот', text: 'случайное решение для репетиции' }], auto: false, voters: 0 }; }
+    else d = aggregate(vs, prev ? { w: prev[i].w } : null);
+    if (S.imfUsed[i]) d.imf = false;
+    decs.push({ w: d.w, rate: d.rate, imf: d.imf });
+    reasons.push(d.reasons); voters.push(d.voters); autos.push(!!d.auto);
+  }
+  const res = resolveRound(ev, n, decs, capsNow(), S.imfCond);
+  const rd = x => Math.round(x * 100) / 100;
+  const hist = {
+    r, caps: res.map(x => rd(x.cap)), reasons, voters, autos,
+    res: res.map(x => ({ rets: x.rets.map(rd), port: rd(x.port), cap: rd(x.cap), rate: x.rate, forced: x.forced, rateContrib: rd(x.rateContrib), imf: x.imf, w: x.w.map(rd) }))
+  };
+  commit({ phase: 'reveal', history: S.history.concat([hist]), imfUsed: S.imfUsed.map((u, i) => u || res[i].imf), imfCond: res.map(x => x.imf) });
+}
+function hostNext() {
+  ui.ingestMsg = '';
+  if (S.round >= ROUNDS) { commit({ phase: 'final' }); return; }
+  commit({ phase: 'decide', round: S.round + 1, deadline: Date.now() + S.dur * 1000 });
+}
+function hostReset() {
+  ui.confirmReset = false; manual = {}; codes = {}; seenCodes = new Set(); ui.ingestMsg = '';
+  commit(newState(S.n, S.dur));
+}
+function manualEntry(r, t) { manual[r] = manual[r] || {}; return manual[r][t] = manual[r][t] || { w: [20, 20, 20, 20, 20], rate: 0, imf: false }; }
+
+/* ---------- участник: сеть и действия ---------- */
+function connectPlay() {
+  room = cs.room; S = null; P = {}; O = {}; ctx.hostSeen = false;
+  netConnect('part', () => {
+    client.subscribe([T('host'), T('p/+'), T('o/+')], { qos: 1 });
+    pub('o/' + uid, { on: true });
+    setTimeout(joinNow, 1300);
+  }, (topic, payload) => {
+    const [k, id] = relTopic(topic).split('/'); const m = parseMsg(payload);
+    if (k === 'host') { if (m) { S = m; ctx.hostSeen = true; } }
+    else if (k === 'p') { if (m) P[id] = m; else delete P[id]; }
+    else if (k === 'o') { if (m) O[id] = !!m.on; else delete O[id]; }
+    scheduleRender();
+  });
+  setTimeout(() => { if (!ctx.hostSeen) scheduleRender(); }, 9000);
+}
+function joinNow() {
+  if (!cs.joined || !client) return;
+  const cur = P[uid];
+  const team = cur ? cur.team : smallestTeam(S ? S.n : 5, uid);
+  if (!cur || cur.name !== cs.name) pub('p/' + uid, { name: cs.name, team });
+}
+function playInit() {
+  ctx.view = 'play';
+  const h = location.hash.replace('#', '').toUpperCase();
+  if (/^[A-Z0-9]{4}$/.test(h)) { if (cs.room !== h) cs.joined = false; cs.room = h; }
+  if (cs.joined && cs.room && cs.name) connectPlay();
+  lastKey = ''; render();
+}
+function joinPlay() {
+  const r = (cs.room || '').trim().toUpperCase(), nm = (cs.name || '').trim();
+  if (r.length !== 4) { ui.joinErr = 'Введите код комнаты из четырёх символов с экрана ведущего.'; render(); return; }
+  if (!nm) { ui.joinErr = 'Введите ваше имя.'; render(); return; }
+  ui.joinErr = ''; cs.room = r; cs.name = nm; cs.joined = true; saveCs(); connectPlay(); lastKey = ''; render();
+}
+function leavePlay() { netDisconnect(); cs.joined = false; saveCs(); S = null; P = {}; O = {}; lastKey = ''; render(); }
+function changeTeam(t) { if (!S || S.phase !== 'lobby' || !P[uid]) return; pub('p/' + uid, { name: cs.name, team: t }); }
+function initPlayDraft() {
+  const key = S.gid + ':' + S.round;
+  if (draftKey !== key) { draftKey = key; draft = { w: draft.w.slice(), rate: 0, imf: false, reason: '' }; ui.sent = false; }
+}
+function sendVote() {
+  const t = myTeam(); if (t == null || !client || !S) return;
+  pub('v/' + uid, { gid: S.gid, round: S.round, team: t, name: cs.name, w: draft.w.slice(), rate: draft.rate, imf: draft.imf, reason: (draft.reason || '').trim().slice(0, 160), t: Date.now() });
+  ui.sent = true; ui.sentKey = S.gid + ':' + S.round; paintSend();
+}
+function paintSend() {
+  const b = document.getElementById('sendBtn'); if (!b) return;
+  b.textContent = ui.sent ? 'Решение отправлено ✓ Можно изменить и отправить снова' : 'Отправить решение';
+  b.classList.toggle('ghost', ui.sent);
+}
+window.addEventListener('pagehide', () => { if (ctx.view === 'play' && client) { try { pub('o/' + uid, { on: false }); } catch (e) {} } });
+
+/* ---------- отрисовка ---------- */
+function scheduleRender() { if (renderT) return; renderT = setTimeout(() => { renderT = null; render(); }, 40); }
+function render() {
+  const a = document.activeElement;
+  const typing = a && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && a.type !== 'range' && a.type !== 'checkbox'));
+  const key = [ctx.view, S && S.phase, S && S.round, S && S.gid, cs.team, cs.round, cs.joined, !!P[uid], ctx.net, ctx.hostSeen].join('|');
+  if (typing && key === lastKey) return;
+  if (ctx.view === 'play' && S && S.phase === 'decide' && P[uid] && key === lastKey) return;   // не мешаем заполнять форму
+  lastKey = key;
+  document.body.classList.toggle('host', ctx.view === 'host');
+  let body;
+  if (ctx.view === 'host') body = hostView();
+  else if (ctx.view === 'play') body = playView();
+  else if (ctx.view === 'code') body = codeView();
+  else body = chooseView();
+  $app.innerHTML = header() + (ctx.view === 'host' ? ticker() : '') + body;
+  if ((ctx.view === 'code' && cs.team != null) || (ctx.view === 'play' && S && S.phase === 'decide' && P[uid])) { paintWeights(); paintRate(); }
+  if (ctx.view === 'play') paintSend();
+  if (ctx.view === 'host' && S && S.phase === 'lobby') drawQr();
+  tick();
+}
+const hostLink = () => (window.top === window && /^https?:/.test(location.href)) ? location.href.split('#')[0] + '#' + room : '';
+function drawQr() {
+  const box = document.getElementById('qrbox'); const link = hostLink();
+  if (!box || !link) return;
+  const go = () => {
+    try {
+      const q = window.qrcode(0, 'M'); q.addData(link); q.make();
+      const n = q.getModuleCount(); let d = '';
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c + 2} ${r + 2}h1v1h-1z`;
+      box.innerHTML = `<svg viewBox="0 0 ${n + 4} ${n + 4}" shape-rendering="crispEdges" role="img" aria-label="QR-код для входа"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+    } catch (e) {}
+  };
+  loadScript(QR_LIBS, () => !!window.qrcode, ok => { if (ok) go(); });
+}
+function ticker() {
+  const done = S ? S.history : [];
+  const f = (l, v) => `${l} ${arrow(v)} ${sgn(v)}`;
+  const items = done.length ? done.map(h => { const ev = EVENTS[h.r - 1]; return `${ev.year} ${ev.title.toUpperCase()} · ${f('USD', ev.usd)} · ${f('ЗОЛОТО', ev.gold)} · ${f('НЕФТЬ', ev.oil)}`; }) : ['МИРОВЫЕ ФИНАНСЫ · ПЯТЬ КРИЗИСОВ · ГОД СКРЫТ · РЕШАЙТЕ СМЕЛО'];
+  const line = esc(items.join('   ◆   ')) + '   ◆   ';
+  return `<div class="ticker" aria-hidden="true"><div class="track"><span>${line}</span><span>${line}</span></div></div>`;
+}
+function header() {
+  const role = ctx.view === 'host' ? 'Ведущий' : (ctx.view === 'play' || ctx.view === 'code') ? 'Участник' : '';
+  const roomPill = room && (ctx.view === 'host' || (ctx.view === 'play' && cs.joined)) ? `<span class="pill">комната <b class="num">${esc(room)}</b></span>` : '';
+  let net = '';
+  if (ctx.view === 'host' || (ctx.view === 'play' && cs.joined)) {
+    net = ctx.net === 'ok' ? `<span class="sync live">на связи${ctx.view === 'host' ? ` · в сети: ${onlineCount()}` : ''}</span>` : ctx.net === 'fail' ? '<span class="sync error">нет связи</span>' : '<span class="sync local">подключаемся…</span>';
+  }
+  let dots = '';
+  if (ctx.view === 'host' && S && S.phase !== 'lobby') {
+    dots = `<span class="dots" aria-label="Раунд ${S.round} из ${ROUNDS}">${[1, 2, 3, 4, 5].map(n => `<i class="${n < S.round || (n === S.round && S.phase !== 'decide') ? 'done' : n === S.round ? 'now' : ''}"></i>`).join('')}</span>`;
+  }
+  const pill = ctx.view === 'host' && S && (S.phase === 'decide' || S.phase === 'reveal') ? `<span class="pill">Раунд ${S.round} из ${ROUNDS}</span>` : ctx.view === 'host' && S && S.phase === 'final' ? '<span class="pill">Итоги</span>' : '';
+  return `<header class="top"><div class="brand"><span class="mark">МР</span>Мировой рынок</div>${role ? `<span class="pill">${role}</span>` : ''}${roomPill}${pill}${dots}<span class="grow"></span>${net}</header>`;
+}
+const stepHead = (n, t) => `<div class="step"><span class="sn">${n}</span><h2>${t}</h2></div>`;
+function leaderboard(caps, highlight) {
+  const n = caps.length;
+  const order = caps.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]);
+  return `<div class="lb">${order.map(([c, i], p) => {
+    const d = (c / START_CAP - 1) * 100;
+    return `<div class="r ${i === highlight ? 'me' : ''}"><span class="pos">${p + 1}</span>${tname(i)}<span class="num"><b>${nf(c)}</b></span><span class="num ${cls(d)}">${arrow(d)} ${sgn(d)}</span></div>`;
+  }).join('')}</div>`;
+}
+function clueCard(ev, revealed) {
+  return `<div class="card">
+    <div class="eyebrow">Машина времени · год</div>
+    <div class="year ${revealed ? '' : 'hidden'}">${revealed ? esc(ev.year) : '? ? ? ?'}</div>
+    <h2 style="margin-top:12px">${esc(revealed ? ev.title : ev.clue.headline)}</h2>
+    <ul class="facts">${ev.clue.facts.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
+    <div class="q">${esc(ev.clue.question)}</div>
+  </div>`;
+}
+
+
+
+/* ===== стартовый экран ===== */
+function chooseView() {
+  return `<div class="wrap">
+    <div class="hero"><div class="eyebrow">Мировые финансы · командная игра · около 30 минут</div><h1>Мировой рынок</h1>
+    <p>Команды управляют фондом и центральным банком своего региона и проходят через пять реальных финансовых кризисов. Год каждого кризиса скрыт, пока команды не примут решение.</p></div>
+    <div class="grid g2">
+      <div class="card choice"><h2>Я ведущий</h2><p class="muted" style="margin:0">Создаю комнату, показываю экран всей группе, веду раунды и разбираю результаты. Открывайте на компьютере, подключённом к проектору.</p><button class="btn big" data-act="choose" data-v="host">Создать комнату</button></div>
+      <div class="card choice"><h2>Я участник</h2><p class="muted" style="margin:0">Захожу в комнату по коду с экрана ведущего и играю с телефона вместе с командой.</p><button class="btn big ghost" data-act="choose" data-v="play">Войти в комнату</button></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>Как проходит игра</h3><ol class="howto">
+      <li><div><b>Ведущий создаёт комнату</b> и показывает группе код и QR-код. Участники заходят с телефонов, ведущий видит всех на экране.</div></li>
+      <li><div><b>Ведущий показывает ситуацию.</b> Это описание реального кризиса без названия и года.</div></li>
+      <li><div><b>Команды решают</b>, куда вложить капитал и что делать со ставкой центрального банка, и отправляют решение кнопкой.</div></li>
+      <li><div><b>Рынок отвечает.</b> Раскрывается год кризиса, разбор и рейтинг команд.</div></li></ol></div>
+  </div>`;
+}
+
+/* ===== ведущий ===== */
+function hostView() {
+  if (S.phase === 'lobby') return hostLobby();
+  if (S.phase === 'decide') return hostDecide();
+  if (S.phase === 'reveal') return hostReveal();
+  return hostFinal();
+}
+const netBanner = () => ctx.net === 'fail' ? '<div class="bnr" style="margin-bottom:16px"><b>Нет связи с сервером игры.</b> Проверьте интернет и обновите страницу. Если связь не появится, играйте в запасном режиме: участники отправляют решения кодом, а вы вставляете их в поле «Если у кого-то нет связи».</div>' : '';
+function hostLobby() {
+  const n = S.n, link = hostLink();
+  const teams = TEAMS.slice(0, n).map((t, i) => {
+    const m = memberList(i);
+    return `<div class="team-card" style="--c:var(--t${i})"><div class="tc-head">${tname(i)}<span class="badge">${m.length}</span></div><div class="mems">${m.length ? m.map(x => `<span class="mem ${x.on ? 'on' : ''}"><i class="st"></i>${esc(x.name)}</span>`).join('') : '<span class="tiny">пока никого</span>'}</div></div>`;
+  }).join('');
+  const total = Object.keys(P).length;
+  return `<div class="wrap"><div class="spacer"></div>${netBanner()}
+    ${ui.restored ? '<div class="note" style="margin-bottom:16px">Игра восстановлена после обновления страницы. <button class="btn ghost" style="min-height:34px;padding:4px 12px;margin-left:8px" data-act="new-room">Создать новую комнату</button></div>' : ''}
+    <div class="grid g2">
+      <div class="card"><div class="eyebrow">Код комнаты</div><div class="roomcode">${esc(room)}</div>
+        <ol class="howto" style="margin-top:16px">
+          <li><div>Участники открывают на телефоне ${link ? `<b class="num" style="word-break:break-all">${esc(link)}</b>` : 'страницу игры (адрес в адресной строке браузера)'}.</div></li>
+          <li><div>Нажимают «Я участник», вводят код <b class="num">${esc(room)}</b> и своё имя.</div></li>
+          <li><div>Вы видите всех справа. Когда все зашли, нажмите «Начать игру».</div></li></ol>
+        <div id="qrbox" class="qr" ${link ? '' : 'hidden'}></div></div>
+      <div class="grid" style="align-content:start">
+        <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Кто зашёл</h3><span class="bigstat">${onlineCount()} <span class="tiny">в сети из ${total}</span></span></div>
+          <div class="grid g3" style="margin-top:12px">${teams}</div>
+          ${total ? '' : '<p class="muted pulse" style="margin:12px 0 0">Ждём участников…</p>'}</div>
+        <div class="card"><h3>Настройки</h3>
+          <div class="row" style="align-items:flex-start;gap:24px">
+            <div><div class="tiny">Сколько команд</div><div class="seg"><button data-act="cfg-n" data-v="4" class="${n === 4 ? 'on' : ''}">4</button><button data-act="cfg-n" data-v="5" class="${n === 5 ? 'on' : ''}">5</button></div></div>
+            <div><div class="tiny">Время на решение</div><div class="seg">${[60, 90, 120].map(d => `<button data-act="cfg-dur" data-v="${d}" class="${S.dur === d ? 'on' : ''}">${d} с</button>`).join('')}</div></div></div>
+          <label class="check" style="margin-top:14px"><input type="checkbox" data-act="autobots" ${ui.autoBots ? 'checked' : ''}><span><b>Репетиция с ботами</b><br><span class="tiny">Команды без решений ходят случайно. Для пробного запуска.</span></span></label>
+          <div style="margin-top:16px"><button class="btn big" data-act="start" style="width:100%">Начать игру</button></div></div>
+      </div></div></div>`;
+}
+function hostDecide() {
+  const n = S.n, r = S.round, ev = EVENTS[r - 1];
+  const cards = TEAMS.slice(0, n).map((t, i) => {
+    const mem = memberList(i);
+    const subIds = mem.filter(x => { const v = V[x.id]; return v && v.gid === S.gid && v.round === r && v.team === i; }).map(x => x.id);
+    const cc = codesCount(r, i), man = manual[r] && manual[r][i];
+    const got = subIds.length + cc;
+    const pct = man ? 100 : mem.length ? Math.min(100, got / mem.length * 100) : (got ? 100 : 0);
+    const status = man ? '<span class="ok">вручную</span>' : `<span class="num">${got} / ${mem.length || '–'}</span>`;
+    const chips = mem.map(x => { const d = subIds.includes(x.id); return `<span class="mem ${x.on ? 'on' : ''} ${d ? 'done' : ''}"><i class="st"></i>${esc(x.name)}${d ? ' ✓' : ''}</span>`; }).join('') || '<span class="tiny">в команде никого нет</span>';
+    return `<div class="team-card" style="--c:var(--t${i})"><div class="tc-head">${tname(i)}${status}</div><div class="prog" style="--c:var(--t${i});--w:${pct}%"><i></i></div><div class="mems">${chips}</div></div>`;
+  }).join('');
+  const manualRows = TEAMS.slice(0, n).map((t, i) => {
+    const m = manual[r] && manual[r][i] || { w: [20, 20, 20, 20, 20], rate: 0, imf: false };
+    return `<div class="note" style="margin-top:8px"><div class="row" style="justify-content:space-between">${tname(i)}<button class="btn ghost" style="min-height:34px;padding:4px 12px" data-act="m-bot" data-t="${i}">Случайно</button></div>
+      <div class="row" style="margin-top:8px;gap:6px">${ASSET_LABELS.map((l, k) => `<label class="tiny" style="flex:1;min-width:60px">${esc(l.split(' ')[0])}<input type="number" min="0" max="100" data-m="${i}:${k}" value="${Math.round(m.w[k])}"></label>`).join('')}</div>
+      <div class="row" style="margin-top:8px"><div class="seg">${[-1, 0, 1].map(v => `<button data-act="m-rate" data-t="${i}" data-v="${v}" class="${m.rate === v ? 'on' : ''}">${RATE_LABEL[v]}</button>`).join('')}</div>
+      <label class="row tiny"><input type="checkbox" data-act="m-imf" data-t="${i}" ${m.imf ? 'checked' : ''} ${S.imfUsed[i] ? 'disabled' : ''}> МВФ</label></div></div>`;
+  }).join('');
+  const ins = INSIDER_TEAMS[r - 1] % n;
+  return `<div class="wrap"><div class="spacer"></div>${netBanner()}
+    <div class="grid g2">
+      <div class="grid" style="align-content:start">
+        <div class="card"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Сейчас идёт</div><div class="roundbig">Раунд ${r}</div></div>
+          <div style="text-align:right"><div class="eyebrow">Осталось</div><div class="timer" id="timer">--:--</div></div></div>
+          <div class="row" style="margin-top:10px"><button class="btn ghost" data-act="extend">+30 секунд</button></div></div>
+        ${clueCard(ev, false)}
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="card"><h3>Решения команд</h3><div class="grid" style="gap:12px">${cards}</div>
+          <p class="tiny" style="margin:10px 0 0">Инсайд в этом раунде получает команда: <b>${esc(TEAMS[ins].name)}</b>. Зелёная точка значит, что участник в сети, галочка значит, что решение отправлено.</p>
+          <button class="btn big" data-act="resolve" style="width:100%;margin-top:14px">Показать реакцию рынка</button>
+          <p class="tiny" style="margin:8px 0 0">Нажмите, когда все отправили решения или время вышло. Команды, от которых ничего нет, повторят прошлый ход.</p></div>
+        <div class="card"><details id="manualBox" ${ui.manualOpen ? 'open' : ''}><summary><b>Если у кого-то нет связи</b></summary>
+          <p class="tiny">Вставьте сюда коды решений, которые участники присылают в чат. Коды получаются на странице участника в запасном режиме.</p>
+          <textarea id="codeIn" placeholder="Вставьте сообщения из чата"></textarea>
+          <div class="row" style="margin-top:8px"><button class="btn" data-act="ingest">Принять коды</button><span class="tiny">${esc(ui.ingestMsg)}</span></div>
+          <p class="tiny" style="margin-top:14px"><b>Или введите решение команды вручную:</b></p>${manualRows}</details></div>
+      </div>
+    </div></div>`;
+}
+function barChart(res, prevCaps, n) {
+  const ch = res.map((x, i) => (x.cap / prevCaps[i] - 1) * 100);
+  const mx = Math.max(5, ...ch.map(Math.abs));
+  return ch.map((d, i) => {
+    const w = Math.abs(d) / mx * 100;
+    const bar = `<span class="bar" style="width:${w}%;--c:var(--t${i})"></span>`;
+    return `<div class="brow">${tname(i)}<div class="btrack"><div class="bl">${d < 0 ? `<span class="bval bad">${arrow(d)} ${sgn(d)}</span>` + bar : ''}</div><div class="br">${d >= 0 ? bar + `<span class="bval ${cls(d)}">${arrow(d)} ${sgn(d)}</span>` : ''}</div></div></div>`;
+  }).join('');
+}
+function decisionCards(h, n) {
+  return TEAMS.slice(0, n).map((t, i) => {
+    const x = h.res[i];
+    const w = x.w.map((v, k) => `${esc(ASSET_LABELS[k].split(' ')[0])} ${Math.round(v)}`).join(' · ');
+    const rs = h.reasons[i] || [];
+    return `<div class="team-card" style="--c:var(--t${i})"><div class="row" style="justify-content:space-between">${tname(i)}<span class="num ${cls(x.port)}">${arrow(x.port)} ${sgn(x.port)}</span></div>
+      <div style="margin-top:6px"><b>${esc(rateWord(x.rate))}</b>${x.forced ? ' <span class="badge">условие МВФ</span>' : ''}${x.imf ? ' <span class="badge">кредит МВФ</span>' : ''}${h.autos[i] ? ' <span class="badge">ход повторён</span>' : ''}</div>
+      <div class="tiny" style="margin-top:4px">${w}</div>
+      ${rs.length ? `<details><summary>Обоснования (${rs.length})</summary>${rs.map(q => `<p class="reason">${esc(q.text)}${q.name ? ' <span class="tiny">— ' + esc(q.name) + '</span>' : ''}</p>`).join('')}</details>` : ''}</div>`;
+  }).join('');
+}
+function hostReveal() {
+  const n = S.n, r = S.round, ev = EVENTS[r - 1], h = S.history[r - 1];
+  const prev = r > 1 ? S.history[r - 2].caps : Array(n).fill(START_CAP);
+  const tape = [['Доллар (кэш)', ev.usd], ['Золото', ev.gold], ['Нефть', ev.oil]].map(([l, v]) => `<div class="c"><small>${l}</small><b class="${cls(v)}">${arrow(v)} ${sgn(v)}</b></div>`).join('');
+  const regional = `<div class="scroll"><table><tr><th>Регион</th><th>Акции</th><th>Облигации</th></tr>${TEAMS.slice(0, n).map((t, i) => `<tr><td>${tname(i)}</td><td class="num ${cls(ev.stocks[i])}">${arrow(ev.stocks[i])} ${sgn(ev.stocks[i], 0)}</td><td class="num ${cls(ev.bonds[i])}">${arrow(ev.bonds[i])} ${sgn(ev.bonds[i], 0)}</td></tr>`).join('')}</table></div>`;
+  return `<div class="wrap"><div class="spacer"></div>
+    <div class="grid g2">
+      <div class="grid" style="align-content:start">
+        <div class="card"><div class="eyebrow">Машина времени · год</div><div class="year">${esc(ev.year)}</div><h2 style="margin-top:12px">${esc(ev.title)}</h2>
+          <p>${esc(ev.reveal.text)}</p>
+          <div class="note"><b>Что проверяет раунд.</b> ${esc(ev.reveal.concept)}</div>
+          <p class="muted">${esc(ev.reveal.best)}</p>
+          <div class="terms">${ev.reveal.terms.map(t => `<span class="badge">${esc(t)}</span>`).join('')}</div></div>
+        <div class="card"><h3>Рынок за раунд</h3><div class="tape">${tape}</div><div class="spacer"></div>${regional}
+          <p class="tiny">Доходности в игре стилизованы под реальную динамику эпизода и показаны в долларах до эффекта ставок.</p></div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="card"><h3>Результат раунда</h3>${barChart(h.res, prev, n)}</div>
+        <div class="card"><h3>Капитал после раунда ${r}</h3>${leaderboard(h.caps)}</div>
+        <div class="row"><button class="btn big" data-act="next">${r >= ROUNDS ? 'Показать итоги' : 'Следующий раунд'}</button></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>Что решили команды</h3><div class="grid g3">${decisionCards(h, n)}</div></div>
+  </div>`;
+}
+function lineChart(n) {
+  const series = TEAMS.slice(0, n).map((t, i) => [START_CAP].concat(S.history.map(h => h.caps[i])));
+  const W = 680, H = 330, L = 46, R = 118, T = 14, B = 34;
+  const all = series.flat();
+  let lo = Math.min(...all), hi = Math.max(...all);
+  const pad = Math.max(3, (hi - lo) * 0.08); lo = Math.floor((lo - pad) / 5) * 5; hi = Math.ceil((hi + pad) / 5) * 5;
+  const X = j => L + (W - L - R) * j / (ROUNDS), Y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const step = (hi - lo) > 80 ? 20 : (hi - lo) > 40 ? 10 : 5;
+  let grid = '';
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) grid += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="12">${v}</text>`;
+  const xl = ['Старт'].concat(Array.from({ length: ROUNDS }, (_, j) => 'Р' + (j + 1))).map((l, j) => `<text x="${X(j)}" y="${H - 10}" text-anchor="middle" font-size="12">${l}</text>`).join('');
+  const ends = series.map((s, i) => [Y(s[s.length - 1]), i]).sort((a, b) => a[0] - b[0]);
+  const ly = {}; let last = -99;
+  ends.forEach(([y, i]) => { const yy = Math.max(y, last + 15); ly[i] = yy; last = yy; });
+  const lines = series.map((s, i) => {
+    const pts = s.map((v, j) => `${X(j)},${Y(v)}`).join(' ');
+    const dots = s.map((v, j) => `<circle cx="${X(j)}" cy="${Y(v)}" r="${j === s.length - 1 ? 6 : 4}" fill="var(--t${i})" stroke="var(--panel)" stroke-width="2"><title>${esc(TEAMS[i].name)}: ${nf(v)}</title></circle>`).join('');
+    return `<polyline points="${pts}" fill="none" stroke="var(--t${i})" stroke-width="2.5" stroke-linejoin="round"/>${dots}<text x="${X(s.length - 1) + 12}" y="${ly[i] + 4}" font-size="13" style="fill:var(--ink)">${esc(TEAMS[i].short || TEAMS[i].name)} ${nf(s[s.length - 1], 0)}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Капитал команд по раундам">${grid}${xl}${lines}</svg>
+    <div class="legend">${TEAMS.slice(0, n).map((t, i) => tname(i)).join('')}</div>`;
+}
+function awardCards(n, mine) {
+  const a = computeAwards(S.history, n);
+  const items = [['Главный рисковик', a.risky, 'самые концентрированные портфели'], ['Самый осторожный', a.cautious, 'самые диверсифицированные портфели'], ['Лучший центробанк', a.banker, 'решения по ставке дали больше всего']];
+  return items.map(([t, i, d]) => `<div class="team-card" style="--c:var(--t${i})"><div class="eyebrow">${t}</div><div style="margin:6px 0">${tname(i)}</div><div class="tiny">${d}</div></div>`).join('');
+}
+function hostFinal() {
+  const n = S.n, caps = capsNow();
+  const order = caps.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]);
+  const win = order[0][1];
+  const rows = TEAMS.slice(0, n).map((t, i) => `<tr><td>${tname(i)}</td><td class="num">${START_CAP}</td>${S.history.map(h => `<td class="num">${nf(h.caps[i])}</td>`).join('')}</tr>`).join('');
+  const log = S.history.map(h => `<details><summary><b>Раунд ${h.r}: ${esc(EVENTS[h.r - 1].year)} · ${esc(EVENTS[h.r - 1].title)}</b></summary><div class="grid g3" style="margin:8px 0 14px">${decisionCards(h, n)}</div></details>`).join('');
+  return `<div class="wrap"><div class="hero"><div class="eyebrow">Итоги игры</div><h1>Победитель: ${esc(TEAMS[win].name)}</h1>
+    <p>Капитал ${nf(caps[win])} при старте ${START_CAP}. Пять эпизодов истории пройдены.</p></div>
+    <div class="grid g2"><div class="card"><h3>Итоговый рейтинг</h3>${leaderboard(caps)}</div>
+      <div class="card"><h3>Капитал по раундам</h3>${lineChart(n)}</div></div>
+    <div class="grid g3" style="margin-top:16px">${awardCards(n)}</div>
+    <div class="card" style="margin-top:16px"><h3>Таблица капитала</h3><div class="scroll"><table><tr><th>Команда</th><th>Старт</th>${S.history.map(h => `<th>Р${h.r}</th>`).join('')}</tr>${rows}</table></div></div>
+    <div class="card" style="margin-top:16px"><h3>Журнал решений и обоснований</h3>${log}</div>
+    <div class="row" style="margin-top:16px">${ui.confirmReset ? '<span class="muted">Сбросить игру и вернуться в лобби?</span><button class="btn" data-act="reset-yes">Да, сбросить</button><button class="btn ghost" data-act="reset-no">Отмена</button>' : '<button class="btn ghost" data-act="reset">Начать заново</button>'}</div></div>`;
+}
+
+
+/* ===== участник ===== */
+function decideBody(t, r, base = 3, f = {}) {
+  const ev = EVENTS[r - 1];
+  const isIns = INSIDER_TEAMS[r - 1] === t;
+  const sliders = [0, 1, 2, 3, 4].map(k => `<div class="asset"><label for="w${k}">${esc(assetName(k, t))}</label><span class="v" id="wv${k}">0%</span><input type="range" class="slider" id="w${k}" data-k="${k}" min="0" max="100" step="1" value="${draft.w[k]}"></div>`).join('');
+  return `${stepHead(base, 'Прочитайте ситуацию')}
+    <div class="card"><div class="eyebrow">Год скрыт</div><h2>${esc(ev.clue.headline)}</h2>
+      <ul class="facts">${ev.clue.facts.map(x => `<li>${esc(x)}</li>`).join('')}</ul><div class="q">${esc(ev.clue.question)}</div></div>
+    <div class="note" style="margin-top:12px"><b>Ваша ситуация.</b> ${esc(ev.teamNotes[t])}</div>
+    ${isIns ? `<div class="note insider" style="margin-top:12px"><b>Инсайд для вашей команды.</b> ${esc(ev.insider)} <span class="tiny">Слухи не всегда сбываются полностью.</span></div>` : ''}
+    ${stepHead(base + 1, 'Примите решение')}
+    <div class="card"><h3>А. Куда вложить капитал</h3>${sliders}
+      <p class="tiny" style="margin:8px 0 0">Сумма всегда 100%. Двигаете один ползунок, остальные подстраиваются.</p></div>
+    <div class="card" style="margin-top:12px"><h3>Б. Ставка вашего центробанка</h3>
+      <div class="rate">${[-1, 0, 1].map(v => `<button data-act="rate" data-v="${v}" ${v < 0 && f.imfCond ? 'disabled' : ''}>${rateWord(v)}</button>`).join('')}</div>
+      <p class="tiny" id="rateHint" style="margin:10px 0 0"></p>${f.imfCond ? '<p class="tiny" style="margin:6px 0 0"><b>Условие МВФ:</b> в этом раунде снижать ставку нельзя.</p>' : ''}</div>
+    <div class="check" style="margin-top:12px"><input type="checkbox" id="imf" data-act="imf" ${f.imfUsed ? 'disabled' : ''}><label for="imf"><b>В. Кредит МВФ (по желанию)</b><br><span class="tiny">${f.imfUsed ? 'Вы уже использовали кредит. ' : ''}Один раз за игру. Потери по акциям и облигациям региона сократятся на 40%, комиссия 3% капитала, в следующем раунде нельзя снижать ставку. Ведущий проверит, не использовали ли вы его раньше.</span></label></div>
+    <div class="card" style="margin-top:12px"><label for="reason"><h3 style="margin:0">Г. Обоснование</h3></label><p class="tiny" style="margin:6px 0 8px">Одна фраза с термином: carry trade, дюрация, бегство в качество, заражение.</p>
+      <textarea id="reason" maxlength="160" placeholder="Почему вы так решили?">${esc(draft.reason)}</textarea></div>`;
+}
+function makeCode() {
+  const clean = (s, n) => String(s || '').replace(/[~\r\n]+/g, ' ').trim().slice(0, n);
+  return `MR2~${cs.round}~${cs.team}~${draft.w.join('.')}~${draft.rate}~${draft.imf ? 1 : 0}~${clean(cs.name, 24)}~${clean(draft.reason, 160)}`;
+}
+function codeDirty() { cs.code = ''; const o = document.getElementById('codeOut'); if (o) o.hidden = true; }
+function codeView() {
+  const t = cs.team, r = cs.round;
+  const teamBtns = TEAMS.map((tm, i) => `<button class="btn ghost" style="justify-content:flex-start;min-height:52px;border-left:6px solid var(--t${i});${i === t ? 'background:var(--panel2);' : ''}" data-act="c-team" data-v="${i}">${esc(tm.name)}${i === t ? ' ✓' : ''}</button>`).join('');
+  if (t == null) {
+    return `<div class="wrap pw"><div class="hero"><div class="eyebrow">Участник</div><h1>Добро пожаловать</h1><p>Вы играете в команде. Решение команды отправляется ведущему коротким кодом, ничего устанавливать и регистрироваться не нужно.</p></div>
+      ${stepHead(1, 'Кто вы')}
+      <div class="card"><label for="nameInput"><b>Ваше имя</b></label><p class="tiny" style="margin:2px 0 8px">Его увидит только ведущий, рядом с вашим обоснованием.</p>
+        <input type="text" id="nameInput" maxlength="24" autocomplete="off" value="${esc(cs.name)}" placeholder="Например, Анна">
+        <p style="margin:16px 0 8px"><b>Выберите команду.</b> <span class="tiny">Ведущий скажет, кто в какой команде.</span></p>
+        <div class="grid" style="gap:8px">${teamBtns}</div></div></div>`;
+  }
+  const roundSeg = `<div class="seg" role="group" aria-label="Раунд">${[1, 2, 3, 4, 5].map(n => `<button data-act="c-round" data-v="${n}" class="${n === r ? 'on' : ''}" style="min-width:52px;min-height:52px;font-size:1.1rem">${n}</button>`).join('')}</div>`;
+  return `<div class="wrap pw">
+    <div class="minibar row" style="justify-content:space-between"><div class="tname" style="font-size:1.1rem">${chip(t)}${esc(TEAMS[t].name)} · раунд ${r}</div><button class="btn ghost" style="min-height:36px;padding:4px 12px" data-act="c-team" data-v="-1">Сменить</button></div>
+    ${stepHead(2, 'Выберите раунд')}
+    <div class="card"><p style="margin:0 0 10px">Номер раунда называет ведущий.</p>${roundSeg}</div>
+    ${decideBody(t, r)}
+    ${stepHead(5, 'Отправьте код ведущему')}
+    <div class="card"><p style="margin:0">Нажмите кнопку внизу, скопируйте код и отправьте его в общий чат группы. Если в команде несколько человек, отправьте один код или каждый свой: решение команды усреднится.</p>
+      <div id="codeOut" ${cs.code ? '' : 'hidden'} style="margin-top:14px"><textarea readonly id="codeText" class="bigcode" rows="4" data-act="c-sel">${esc(cs.code)}</textarea>
+        <div class="row" style="margin-top:10px"><button class="btn big" data-act="c-copy">Скопировать код</button><span class="tiny" id="copyMsg"></span></div>
+        <p class="tiny">Передумали? Измените решение и получите код заново: старый код отправлять не нужно.</p></div></div>
+    <p class="tiny center" style="margin-top:12px">Результат раунда смотрите на экране ведущего.</p>
+    <div class="stickybtn"><button class="btn big" style="width:100%" id="codeBtn" data-act="c-make">Получить код решения</button></div></div>`;
+}
+
+/* ===== участник (живая связь) ===== */
+function playView() {
+  if (!cs.joined) return joinView();
+  if (ctx.net === 'fail') return `<div class="wrap pw"><div class="hero"><h1>Нет связи</h1><p>Не получилось подключиться к серверу игры. Проверьте интернет и попробуйте ещё раз.</p></div>
+    <div class="grid" style="gap:10px"><button class="btn big" data-act="p-retry">Попробовать снова</button><button class="btn ghost" data-act="p-code">Отправить решение кодом (запасной режим)</button><button class="btn ghost" data-act="p-leave">Изменить код комнаты</button></div></div>`;
+  const t = myTeam();
+  if (!P[uid]) return `<div class="wrap pw"><div class="hero"><div class="eyebrow">Комната ${esc(cs.room)}</div><h1 class="pulse">Подключаемся…</h1><p>Входим в комнату и выбираем вам команду.</p></div></div>`;
+  if (!S) return `<div class="wrap pw"><div class="hero"><div class="eyebrow">Вы вошли как ${esc(cs.name)}</div><h1 class="pulse">Ждём ведущего</h1><p>${ctx.hostSeen ? '' : 'Если ведущий уже создал комнату, а этот экран не меняется больше десяти секунд, проверьте код комнаты.'}</p></div>
+    <button class="btn ghost" data-act="p-leave">Изменить код комнаты или имя</button></div>`;
+  if (t == null) return `<div class="wrap pw"><div class="hero"><h1 class="pulse">Подбираем команду…</h1></div></div>`;
+  if (S.phase === 'lobby') return playLobby(t);
+  if (S.phase === 'decide') return playDecide(t);
+  if (S.phase === 'reveal') return playerReveal(t);
+  return playerFinal(t);
+}
+function joinView() {
+  return `<div class="wrap pw"><div class="hero"><div class="eyebrow">Участник</div><h1>Вход в игру</h1><p>Код комнаты показан на экране ведущего.</p></div>
+    <div class="card">
+      <label for="roomInput"><b>Код комнаты</b></label>
+      <input type="text" id="roomInput" class="num" maxlength="4" autocomplete="off" autocapitalize="characters" value="${esc(cs.room)}" placeholder="например, K7Q2" style="font-size:1.6rem;letter-spacing:.2em;text-transform:uppercase;margin:6px 0 16px">
+      <label for="nameInput"><b>Ваше имя</b></label><p class="tiny" style="margin:2px 0 6px">Его увидят ведущий и ваша команда.</p>
+      <input type="text" id="nameInput" maxlength="24" autocomplete="off" value="${esc(cs.name)}" placeholder="Например, Анна">
+      ${ui.joinErr ? `<p class="bad" style="margin:12px 0 0">${esc(ui.joinErr)}</p>` : ''}
+      <button class="btn big" style="width:100%;margin-top:18px" data-act="p-join">Войти</button></div>
+    <p class="tiny center" style="margin-top:14px">Нет связи? <a href="#" data-act="p-code" style="color:inherit">Запасной режим: решение кодом</a></p></div>`;
+}
+function playLobby(t) {
+  const n = S.n;
+  const btns = TEAMS.slice(0, n).map((tm, i) => `<button class="btn ghost" style="justify-content:space-between;min-height:52px;border-left:6px solid var(--t${i});${i === t ? 'background:var(--panel2);' : ''}" data-act="p-team" data-v="${i}"><span>${esc(tm.name)}${i === t ? ' ✓' : ''}</span><span class="badge">${memberList(i).length}</span></button>`).join('');
+  const mem = memberList(t);
+  return `<div class="wrap pw"><div class="hero"><div class="eyebrow">Вы в игре, ${esc(cs.name)}</div><h1>Команда: ${esc(TEAMS[t].name)}</h1><p class="pulse">Ждём, пока ведущий начнёт игру.</p></div>
+    <div class="pteam" style="--c:var(--t${t})"><b>Ваша команда</b><div class="mems">${mem.map(x => `<span class="mem ${x.on ? 'on' : ''}"><i class="st"></i>${esc(x.name)}${x.id === uid ? ' (вы)' : ''}</span>`).join('')}</div></div>
+    <div class="card" style="margin-top:16px"><h3>Сменить команду</h3><p class="tiny" style="margin-top:0">Распределитесь ровнее: сколько человек в каждой команде указано справа.</p><div class="grid" style="gap:8px">${btns}</div></div></div>`;
+}
+function playDecide(t) {
+  initPlayDraft();
+  const r = S.round;
+  const flags = { imfCond: S.imfCond && S.imfCond[t], imfUsed: S.imfUsed && S.imfUsed[t] };
+  return `<div class="wrap pw"><div class="spacer"></div>
+    <div class="pteam row" style="--c:var(--t${t});justify-content:space-between;flex-wrap:nowrap"><div><div class="tname" style="font-size:1.2rem">${esc(TEAMS[t].name)}</div><div class="tiny">Раунд ${r} из ${ROUNDS}</div></div><div class="timer" id="timer" style="font-size:2.2rem">--:--</div></div>
+    ${decideBody(t, r, 1, flags)}
+    <div class="stickybtn"><button class="btn big" style="width:100%" id="sendBtn" data-act="p-send">Отправить решение</button></div></div>`;
+}
+function playerReveal(t) {
+  const r = S.round, ev = EVENTS[r - 1], h = S.history[r - 1];
+  if (!h) return '<div class="wrap pw"><p class="muted">Считаем…</p></div>';
+  const x = h.res[t];
+  const prev = r > 1 ? S.history[r - 2].caps[t] : START_CAP;
+  const d = (x.cap / prev - 1) * 100;
+  const rows = [0, 1, 2, 3, 4].map(k => `<tr><td>${esc(assetName(k, t))}</td><td class="num">${Math.round(x.w[k])}%</td><td class="num ${cls(x.rets[k])}">${arrow(x.rets[k])} ${sgn(x.rets[k])}</td></tr>`).join('');
+  const rank = h.caps.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).findIndex(z => z[1] === t) + 1;
+  return `<div class="wrap pw"><div class="spacer"></div>
+    <div class="card"><div class="eyebrow">Раунд ${r} · год раскрыт</div><div class="year">${esc(ev.year)}</div><h2 style="margin-top:10px">${esc(ev.title)}</h2>
+      <p>${esc(ev.reveal.text)}</p><div class="note"><b>Что проверяет раунд.</b> ${esc(ev.reveal.concept)}</div><p class="muted">${esc(ev.reveal.best)}</p></div>
+    <div class="card" style="margin-top:12px"><div class="row" style="justify-content:space-between">${tname(t)}<span class="badge">место ${rank}</span></div>
+      <div class="num" style="font-size:2.2rem;font-weight:600;margin-top:6px">${nf(x.cap)}</div>
+      <div class="num ${cls(d)}">${arrow(d)} ${sgn(d)} за раунд</div>
+      <p style="margin:8px 0 0"><b>${esc(rateWord(x.rate))}</b>${x.forced ? ' (условие МВФ)' : ''}${x.imf ? ' · кредит МВФ' : ''}${h.autos[t] ? ' · ход повторён, решения не пришли' : ''}</p>
+      <div class="scroll"><table style="margin-top:8px"><tr><th>Актив</th><th>Доля</th><th>Доходность</th></tr>${rows}</table></div></div>
+    <p class="tiny center" style="margin-top:12px">Смотрите на экран ведущего. Дальше ждём следующий раунд.</p></div>`;
+}
+function playerFinal(t) {
+  const caps = capsNow();
+  const order = caps.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]);
+  const rank = order.findIndex(z => z[1] === t) + 1;
+  const a = computeAwards(S.history, nTeams());
+  const aw = [a.risky === t ? 'Главный рисковик' : '', a.cautious === t ? 'Самый осторожный' : '', a.banker === t ? 'Лучший центробанк' : ''].filter(Boolean);
+  return `<div class="wrap pw"><div class="hero"><div class="eyebrow">Игра окончена</div><h1>${rank} место</h1><p>${esc(TEAMS[t].name)}, капитал ${nf(caps[t])} при старте ${START_CAP}.</p></div>
+    ${aw.length ? `<div class="note" style="margin-bottom:12px">${aw.map(x => `<span class="badge">${esc(x)}</span>`).join(' ')}</div>` : ''}
+    <div class="card"><h3>Рейтинг</h3>${leaderboard(caps, t)}</div></div>`;
+}
+
+const RATE_HINT = {
+  '1': 'Повышение привлекает капитал и защищает курс валюты, но давит на цены акций и облигаций региона.',
+  '0': 'Ставка не меняется. Эффект зависит от того, что сделают другие страны.',
+  '-1': 'Снижение поддерживает акции и облигации, но ослабляет валюту и усиливает отток капитала.'
+};
+function paintWeights() {
+  [0, 1, 2, 3, 4].forEach(k => {
+    const el = document.getElementById('w' + k), v = document.getElementById('wv' + k);
+    if (el) el.value = draft.w[k];
+    if (v) v.textContent = draft.w[k] + '%';
+  });
+}
+function paintRate() {
+  document.querySelectorAll('.rate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === draft.rate));
+  const h = document.getElementById('rateHint'); if (h) h.textContent = RATE_HINT[String(draft.rate)];
+  const c = document.getElementById('imf'); if (c) c.checked = draft.imf && !c.disabled;
+}
+/* ---------- таймер ---------- */
+function tick() {
+  const el = document.getElementById('timer');
+  if (!el || !S || S.phase !== 'decide') return;
+  const rem = Math.ceil((S.deadline - Date.now()) / 1000);
+  el.textContent = mmss(rem);
+  el.classList.toggle('low', rem <= 15);
+}
+setInterval(tick, 500);
+
+
+function hostIngest() {
+  const ta = document.getElementById('codeIn');
+  const text = ta ? ta.value : '';
+  const re = /MR2~([1-5])~([0-4])~(\d{1,3}(?:\.\d{1,3}){4})~(-1|0|1)~([01])~([^~\r\n]*)~([^\r\n]*)/g;
+  let m, ok = 0, other = 0, dup = 0;
+  while ((m = re.exec(text))) {
+    if (seenCodes.has(m[0])) { dup++; continue; }
+    const r = Number(m[1]), tm = Number(m[2]);
+    if (r !== S.round || tm >= S.n) { other++; continue; }
+    seenCodes.add(m[0]);
+    codes[r] = codes[r] || {}; codes[r][tm] = codes[r][tm] || [];
+    codes[r][tm].push({ w: normW(m[3].split('.').map(Number)), rate: Number(m[4]), imf: m[5] === '1', reason: m[7].trim(), team: tm, name: m[6].trim() || 'без имени' });
+    ok++;
+  }
+  ui.ingestMsg = ok || other || dup
+    ? `Принято кодов: ${ok}.` + (other ? ` Не этого раунда или команды: ${other}.` : '') + (dup ? ` Повторов: ${dup}.` : '')
+    : 'Кодов не нашлось. Скопируйте сообщения из чата целиком.';
+  render();
+}
+
+
+/* ---------- события ---------- */
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, v = el.dataset.v, t = el.dataset.t != null ? Number(el.dataset.t) : null;
+  if (el.tagName === 'INPUT' && el.type === 'checkbox') return;
+  if (el.tagName === 'A') ev.preventDefault();
+  switch (act) {
+    case 'choose': if (v === 'host') hostInit(); else playInit(); window.scrollTo(0, 0); break;
+    case 'new-room': hostNewRoom(); break;
+    case 'cfg-n': hostSetCfg(Number(v), 0); break;
+    case 'cfg-dur': hostSetCfg(0, Number(v)); break;
+    case 'start': hostStart(); window.scrollTo(0, 0); break;
+    case 'extend': commit({ deadline: Math.max(S.deadline, Date.now()) + 30000 }); break;
+    case 'resolve': hostResolve(); window.scrollTo(0, 0); break;
+    case 'next': hostNext(); window.scrollTo(0, 0); break;
+    case 'reset': ui.confirmReset = true; render(); break;
+    case 'reset-no': ui.confirmReset = false; render(); break;
+    case 'reset-yes': hostReset(); window.scrollTo(0, 0); break;
+    case 'm-rate': manualEntry(S.round, t).rate = Number(v); ui.manualOpen = true; render(); break;
+    case 'm-bot': Object.assign(manualEntry(S.round, t), randomDecision()); ui.manualOpen = true; render(); break;
+    case 'ingest': hostIngest(); break;
+    case 'p-join': { const r = document.getElementById('roomInput'), n = document.getElementById('nameInput'); if (r) cs.room = r.value; if (n) cs.name = n.value; joinPlay(); break; }
+    case 'p-retry': connectPlay(); render(); break;
+    case 'p-leave': leavePlay(); break;
+    case 'p-team': changeTeam(Number(v)); break;
+    case 'p-send': sendVote(); break;
+    case 'p-code': netDisconnect(); ctx.view = 'code'; lastKey = ''; render(); window.scrollTo(0, 0); break;
+    case 'c-team': {
+      const nm = document.getElementById('nameInput'); if (nm) cs.name = nm.value;
+      cs.team = Number(v) < 0 ? null : Number(v); cs.code = ''; saveCs(); lastKey = ''; render(); window.scrollTo(0, 0); break;
+    }
+    case 'c-round': cs.round = Number(v); cs.code = ''; draft.rate = 0; draft.imf = false; draft.reason = ''; saveCs(); lastKey = ''; render(); break;
+    case 'rate': draft.rate = Number(v); ui.sent = false; paintRate(); paintSend(); codeDirty(); break;
+    case 'c-make': {
+      cs.code = makeCode();
+      const o = document.getElementById('codeOut'), tx = document.getElementById('codeText');
+      if (o && tx) { o.hidden = false; tx.value = cs.code; tx.select(); o.scrollIntoView({ block: 'center' }); }
+      break;
+    }
+    case 'c-sel': el.select(); break;
+    case 'c-copy': {
+      const msg = document.getElementById('copyMsg');
+      const done = ok => { if (msg) msg.textContent = ok ? 'Скопировано. Отправьте в чат.' : 'Выделите код и скопируйте вручную'; };
+      try { navigator.clipboard.writeText(cs.code).then(() => done(true), () => { const tx = document.getElementById('codeText'); if (tx) tx.select(); done(false); }); }
+      catch (e) { const tx = document.getElementById('codeText'); if (tx) tx.select(); done(false); }
+      break;
+    }
+  }
+});
+document.addEventListener('change', ev => {
+  const el = ev.target;
+  if (!el.dataset) return;
+  if (el.dataset.act === 'imf') { draft.imf = el.checked; ui.sent = false; paintRate(); paintSend(); codeDirty(); }
+  if (el.dataset.act === 'autobots') ui.autoBots = el.checked;
+  if (el.dataset.act === 'm-imf') manualEntry(S.round, Number(el.dataset.t)).imf = el.checked;
+  if (el.dataset.m) { const [tm, k] = el.dataset.m.split(':').map(Number); manualEntry(S.round, tm).w[k] = clamp(Number(el.value) || 0, 0, 100); }
+});
+document.addEventListener('input', ev => {
+  const el = ev.target;
+  if (el.classList && el.classList.contains('slider')) { draft.w = setWeight(draft.w, Number(el.dataset.k), Number(el.value)); ui.sent = false; paintWeights(); paintSend(); codeDirty(); }
+  else if (el.id === 'reason') { draft.reason = el.value; ui.sent = false; paintSend(); codeDirty(); }
+  else if (el.id === 'nameInput') { cs.name = el.value; saveCs(); }
+  else if (el.id === 'roomInput') { cs.room = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); el.value = cs.room; }
+});
+document.addEventListener('toggle', ev => { if (ev.target.id === 'manualBox') ui.manualOpen = ev.target.open; }, true);
+document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.target.id === 'nameInput' || ev.target.id === 'roomInput') && ctx.view === 'play') { const r = document.getElementById('roomInput'), n = document.getElementById('nameInput'); if (r) cs.room = r.value; if (n) cs.name = n.value; joinPlay(); } });
+
+/* ---------- запуск ---------- */
+try { const s = JSON.parse(localStorage.getItem('mr-cs') || 'null'); if (s) { cs.name = s.name || ''; cs.room = s.room || ''; cs.joined = !!s.joined; cs.team = s.team; cs.round = s.round || 1; } } catch (e) {}
+if (/^#[A-Za-z0-9]{4}$/.test(location.hash)) playInit(); else render();
+</script>
+</body>
+</html>
